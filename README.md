@@ -147,12 +147,3 @@ If you're looking for a frontend built in React, refer to:
 
 MIT License. Feel free to modify and use commercially or academically.
 
----
-
-Let me know if you want:
-
-* ✅ Dockerfile support
-* ✅ Swagger/OpenAPI documentation
-* ✅ Auto-deployment with Render/EC2/Vercel
-
-I'll help you add those too.
