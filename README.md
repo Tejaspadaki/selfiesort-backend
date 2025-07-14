@@ -1,201 +1,158 @@
+## 📸 Photo Matching Backend (Flask + S3 + DeepFace)
 
-# 📸 Photo Matching System
+This is a Flask-based backend for a **face recognition photo matching system**. It allows:
 
-The **Photo Matching System** is a Python-Flask-based web application designed to help users automatically match uploaded photos based on facial recognition. The system provides a simple UI for uploading photos, detects and compares faces, and stores matched photos. It also includes Google Drive integration for photo backup and retrieval.
+* 📤 Uploading a folder of images (e.g., wedding/event photos) directly to **AWS S3**
+* 🤳 Uploading a **selfie** to match against the uploaded images using **face embeddings**
+* 🧠 Face detection powered by **DeepFace (ArcFace model)**
+* 📂 Organized storage in S3 (uploaded folders and matched folders)
+* 🔗 All output URLs are S3-generated public/pre-signed links
 
 ---
 
-## 🚀 Features
+## 🧠 Features
 
-- 🔍 **Face Detection & Matching** – Compares new photos with previously uploaded ones using facial recognition.
-- 🖼️ **Upload Interface** – Upload single or multiple images at once.
-- 🧠 **Automatic Classification** – Automatically stores matched faces in a separate folder.
-- ☁️ **Google Drive Integration** – Optional support for syncing files using OAuth or service account.
-- 📁 **Organized Storage** – Local folders for uploaded and matched photos.
-- 💻 **Web Interface** – Built using Flask for easy accessibility and interactivity.
+* Upload photos from photographers directly to AWS S3
+* Automatically extract embeddings using `DeepFace`
+* Cluster using `DBSCAN` (unsupervised clustering)
+* Upload matched images to a separate folder (`matched-selfies/`) in S3
+* Serve results through a JSON API (ready for frontend integration)
 
 ---
 
 ## 🛠️ Technologies Used
 
-| Technology                | Purpose                      |
-|--------------------------|------------------------------|
-| Python 3.7+              | Backend language             |
-| Flask                    | Web framework                |
-| face_recognition         | Face comparison engine       |
-| OpenCV (cv2)             | Image preprocessing (optional)|
-| Google Drive API         | Cloud storage (optional)     |
-| HTML, CSS                | Frontend UI                  |
+* `Flask`
+* `DeepFace` (ArcFace)
+* `DBSCAN` from `sklearn`
+* `AWS S3` for file storage
+* `Boto3` (AWS SDK for Python)
+* `CORS` for frontend API access
 
 ---
 
-## 📂 Project Structure
+## 📁 Project Structure
 
 ```
-
-Photo-Matching-system/
-│
-├── app.py                     # Main Flask application
-├── drive\_utils.py             # Google Drive helper functions
-├── client\_secrets.json        # Google OAuth credentials
-├── service\_account.json       # Google Service Account credentials
-├── requirements.txt           # Project dependencies
-├── README.md                  # This file
-│
-├── uploaded\_photos/           # Folder for incoming photos
-├── matched/                   # Folder for matched faces
-├── uploads/                   # (Optional) Temporary uploads
-├── **pycache**/               # Python cache files
-├── faceenv/                   # Virtual environment (optional)
-
-````
+📦 backend/
+├── app.py                # Main Flask API
+├── s3_utils.py           # AWS S3 helper functions
+├── requirements.txt      # Dependencies
+```
 
 ---
 
-## 📦 Installation Instructions
+## 🚀 Setup Instructions
 
-### ✅ Prerequisites
-
-- Python 3.7 or higher
-- pip (Python package manager)
-- (Optional) Virtual environment tool like `venv` or `virtualenv`
-
----
-
-### 📥 Step-by-Step Setup
-
-1. **Navigate to the Project Folder**
+### 1. 🧱 Clone the Repo
 
 ```bash
-cd "E:\web development\Photo-Matching-system"
-````
+git clone https://github.com/yourusername/photo-matching-backend.git
+cd photo-matching-backend
+```
 
-2. **Create a Virtual Environment (Recommended)**
+### 2. 🐍 Create a Virtual Environment
 
 ```bash
 python -m venv faceenv
-faceenv\Scripts\activate  # On Windows
+source faceenv/bin/activate     # On Windows: faceenv\Scripts\activate
 ```
 
-3. **Install the Dependencies**
+### 3. 📦 Install Dependencies
+
+Make sure your Python version is 3.9 or 3.10 (avoid 3.11+ due to DeepFace issues).
 
 ```bash
+pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-4. **Run the Application**
+> 💡 If you face issues with `tensorflow` or `numpy`, you may need to tweak version numbers. Let me know and I’ll adjust them for your OS/CPU/GPU.
+
+---
+
+## ⚙️ AWS S3 Configuration
+
+### Set these environment variables in your shell or `.env` file:
+
+```bash
+export AWS_ACCESS_KEY_ID=your_key
+export AWS_SECRET_ACCESS_KEY=your_secret
+export AWS_DEFAULT_REGION=ap-south-1         # e.g. Mumbai
+export S3_BUCKET_NAME=your-s3-bucket-name
+```
+
+If using a `.env`, install `python-dotenv` and load it from `s3_utils.py`.
+
+---
+
+## ▶️ Run the Flask Server
 
 ```bash
 python app.py
 ```
 
-5. **Access the Web Interface**
+API will be available at: `http://localhost:5000/`
 
-Open your browser and visit:
+---
+
+## 🧪 API Endpoints
+
+### 📤 Upload Photos
 
 ```
-http://127.0.0.1:5000/
+POST /upload_folder
+Form Data:
+- s3_folder (optional): string (e.g., "wedding-july2025")
+- folder_images: [files[]] (multiple image files)
+```
+
+### 🤳 Match a Selfie
+
+```
+POST /selfie_sort
+Form Data:
+- selfie: file (JPEG or PNG)
+```
+
+Response:
+
+```json
+{
+  "status": "success",
+  "matched_files": [
+    {
+      "filename": "wedding-july2025/photo1.jpg",
+      "cluster": 1,
+      "url": "https://s3.amazonaws.com/yourbucket/matched-selfies/...jpg"
+    }
+  ],
+  "total_matches": 3,
+  "selfie_cluster": 1
+}
 ```
 
 ---
 
-## 🔐 Google Drive Integration (Optional)
+## 📦 Example Frontend Repo (Optional)
 
-The app supports Google Drive upload/download using both OAuth and Service Account credentials.
+If you're looking for a frontend built in React, refer to:
 
-### 🧾 Setup Steps:
-
-1. Go to [Google Developer Console](https://console.developers.google.com/)
-2. Enable **Google Drive API**
-3. Create OAuth 2.0 Credentials and download `client_secrets.json`
-4. OR create a Service Account and download `service_account.json`
-5. Share the target Google Drive folder with the **Service Account Email**
-6. Place both `.json` files in the project root directory
-
-➡️ Drive integration logic is handled in `drive_utils.py`.
+* `/frontend/SelfieMatcher.js`
+* `/frontend/PhotographerUpload.js`
 
 ---
 
-## 📸 Usage Flow
+## 📄 License
 
-1. User visits the web interface
-2. Uploads a new image
-3. System compares it with all images in `uploaded_photos/`
-4. If a match is found:
-
-   * Saves it in the `matched/` folder
-   * Optionally uploads it to Google Drive
-5. Displays the match result on screen
+MIT License. Feel free to modify and use commercially or academically.
 
 ---
 
-## 💡 Use Cases
+Let me know if you want:
 
-* 🎓 Student attendance system using photos
-* 🏢 Employee photo logging/verification
-* 🕵️ Detect duplicate faces across datasets
-* 🎉 Identify guests at events or functions
+* ✅ Dockerfile support
+* ✅ Swagger/OpenAPI documentation
+* ✅ Auto-deployment with Render/EC2/Vercel
 
----
-
-## 🔧 Example `requirements.txt`
-
-```txt
-Flask==2.1.2
-face_recognition==1.3.0
-opencv-python==4.7.0.72
-numpy==1.21.4
-Pillow==9.1.0
-google-api-python-client==2.39.0
-google-auth==2.6.0
-google-auth-oauthlib==0.4.6
-```
-
-⚠️ Note: `face_recognition` depends on `dlib`. You may need to install CMake and Visual Studio Build Tools (on Windows) for it to compile correctly.
-
----
-
-## 🤔 Troubleshooting
-
-* ❌ **face\_recognition not installing**:
-  ➜ Install [CMake](https://cmake.org/download/) and [Visual C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/)
-
-* ❌ **ModuleNotFoundError**:
-  ➜ Make sure you activated the virtual environment and installed all packages.
-
-* ❌ **Google Drive errors**:
-  ➜ Ensure the Drive folder is shared with the email found in `service_account.json`.
-
-* ❌ **Port issues / Flask not running**:
-  ➜ Check if port `5000` is already in use or if there's a traceback in the terminal.
-
----
-
-## 📈 Future Improvements
-
-* ✨ Add face bounding box previews
-* 🔐 Add user login & auth (JWT or Flask-Login)
-* 🗃️ Save match logs in a database (SQLite/MongoDB)
-* 🧠 Confidence threshold adjustments for accuracy
-* 📤 Drag-and-drop multi-image uploads
-* 📊 Analytics dashboard for usage tracking
-
----
-
-## 👤 Author
-
-**Tejas Padaki**
-Founder @ Yukti Yantra
-B.Tech Final Year @ Sanjay Ghodawat University
-🚀 MERN Stack | Python | AI/ML | Cloud Enthusiast
-
-🔗 [LinkedIn](https://linkedin.com/in/tejas-padaki)
-🔗 [Portfolio](https://tejas-p.onrender.com/)
-🔗 [GitHub](https://github.com/tejas-padaki)
-
----
-
-## 📝 License
-
-This project is licensed for **educational and demo purposes**. For commercial use, please contact the author.
-
+I'll help you add those too.
